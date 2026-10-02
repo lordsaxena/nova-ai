@@ -1,0 +1,844 @@
+/* =========================================================
+   NOVA GLOBAL
+========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #020308;
+}
+
+body {
+  font-family:
+    "SF Pro Display",
+    "SF Pro Text",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: white;
+}
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.nova {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(20, 30, 65, 0.18),
+      transparent 45%
+    ),
+    #020308;
+}
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+.nova canvas {
+  position: absolute !important;
+  inset: 0;
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 28px;
+
+  pointer-events: none;
+
+  border-bottom: 1px solid
+    rgba(255, 255, 255, 0.06);
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(2, 3, 8, 0.65),
+      transparent
+    );
+}
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.logo {
+  font-size: 17px;
+  font-weight: 600;
+
+  letter-spacing: 7px;
+
+  color: white;
+
+  text-shadow:
+    0 0 18px
+    rgba(255, 255, 255, 0.35);
+}
+
+/* =========================================================
+   SYSTEM STATUS
+========================================================= */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 9px;
+  letter-spacing: 2px;
+
+  color: rgba(
+    255,
+    255,
+    255,
+    0.55
+  );
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #7dd3fc;
+
+  box-shadow:
+    0 0 8px #7dd3fc,
+    0 0 18px
+      rgba(125, 211, 252, 0.5);
+}
+
+/* =========================================================
+   EVENT PANEL
+========================================================= */
+
+.event-panel {
+  position: absolute;
+
+  left: 24px;
+  top: 90px;
+
+  width: 280px;
+
+  padding: 16px;
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(12, 16, 30, 0.72),
+      rgba(5, 7, 16, 0.48)
+    );
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.1);
+
+  backdrop-filter: blur(22px);
+
+  box-shadow:
+    0 20px 50px
+      rgba(0, 0, 0, 0.35),
+    inset 0 1px 0
+      rgba(255, 255, 255, 0.05);
+
+  color: white;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   EVENT HEADER
+========================================================= */
+
+.event-header {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 10px;
+
+  letter-spacing: 2px;
+
+  color:
+    rgba(255, 255, 255, 0.7);
+}
+
+.live {
+  color: #7dd3fc;
+
+  font-size: 9px;
+
+  letter-spacing: 1px;
+
+  text-shadow:
+    0 0 10px
+    rgba(125, 211, 252, 0.8);
+}
+
+/* =========================================================
+   EVENT LIST
+========================================================= */
+
+.event-list {
+  margin-top: 12px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+/* =========================================================
+   EVENT ITEM
+========================================================= */
+
+.event-item {
+  display: flex;
+
+  gap: 10px;
+
+  padding: 9px;
+
+  border-radius: 10px;
+
+  background:
+    rgba(255, 255, 255, 0.035);
+
+  border: 1px solid
+    rgba(255, 255, 255, 0.025);
+
+  animation:
+    eventAppear
+    0.35s ease-out;
+}
+
+@keyframes eventAppear {
+  from {
+    opacity: 0;
+    transform: translateY(
+      -6px
+    );
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(
+      0
+    );
+  }
+}
+
+/* =========================================================
+   EVENT DOT
+========================================================= */
+
+.event-dot {
+  width: 6px;
+  min-width: 6px;
+  height: 6px;
+
+  margin-top: 5px;
+
+  border-radius: 50%;
+}
+
+/* =========================================================
+   EVENT CONTENT
+========================================================= */
+
+.event-content {
+  min-width: 0;
+}
+
+.event-type {
+  font-size: 9px;
+
+  letter-spacing: 1px;
+
+  color: white;
+}
+
+.event-message {
+  margin-top: 3px;
+
+  font-size: 10px;
+
+  line-height: 1.4;
+
+  color:
+    rgba(255, 255, 255, 0.7);
+}
+
+.event-meta {
+  margin-top: 4px;
+
+  font-size: 8px;
+
+  color:
+    rgba(255, 255, 255, 0.35);
+}
+
+/* =========================================================
+   SYSTEM INFORMATION
+========================================================= */
+
+.system-info {
+  position: absolute;
+
+  top: 80px;
+  right: 28px;
+
+  width: 250px;
+
+  padding: 18px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.12);
+
+  border-radius: 16px;
+
+  background:
+    rgba(5, 7, 16, 0.55);
+
+  backdrop-filter: blur(18px);
+
+  box-shadow:
+    0 20px 50px
+      rgba(0, 0, 0, 0.3);
+
+  pointer-events: none;
+}
+
+.system-title {
+  font-size: 18px;
+
+  letter-spacing: 3px;
+
+  font-weight: 600;
+}
+
+.system-description {
+  margin-top: 10px;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  color:
+    rgba(255, 255, 255, 0.55);
+}
+
+.module-count {
+  margin-top: 14px;
+
+  font-size: 9px;
+
+  letter-spacing: 2px;
+
+  color: #7dd3fc;
+}
+
+/* =========================================================
+   MODULE INFORMATION
+========================================================= */
+
+.module-info {
+  position: absolute;
+
+  top: 230px;
+  right: 28px;
+
+  width: 250px;
+
+  padding: 18px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.12);
+
+  border-radius: 16px;
+
+  background:
+    rgba(5, 7, 16, 0.55);
+
+  backdrop-filter: blur(18px);
+
+  box-shadow:
+    0 20px 50px
+      rgba(0, 0, 0, 0.3);
+
+  pointer-events: none;
+}
+
+.module-title {
+  font-size: 15px;
+
+  letter-spacing: 2px;
+
+  font-weight: 600;
+}
+
+.module-description {
+  margin-top: 10px;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  color:
+    rgba(255, 255, 255, 0.55);
+}
+
+.component-count {
+  margin-top: 14px;
+
+  font-size: 9px;
+
+  letter-spacing: 2px;
+
+  color: #7dd3fc;
+}
+
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+.back-button {
+  position: absolute;
+
+  left: 28px;
+  bottom: 92px;
+
+  padding:
+    9px 15px;
+
+  border-radius: 10px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.12);
+
+  background:
+    rgba(5, 7, 16, 0.6);
+
+  backdrop-filter: blur(15px);
+
+  color:
+    rgba(255, 255, 255, 0.75);
+
+  font-family: inherit;
+
+  font-size: 9px;
+
+  letter-spacing: 2px;
+
+  cursor: pointer;
+
+  transition:
+    0.2s ease;
+}
+
+.back-button:hover {
+  background:
+    rgba(255, 255, 255, 0.08);
+
+  border-color:
+    rgba(255, 255, 255, 0.25);
+
+  color: white;
+}
+
+/* =========================================================
+   COMMAND BAR
+========================================================= */
+
+.command {
+  position: absolute;
+
+  left: 50%;
+
+  bottom: 25px;
+
+  transform:
+    translateX(-50%);
+
+  width: min(
+    620px,
+    calc(100% - 40px)
+  );
+
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding:
+    0 16px;
+
+  border-radius: 16px;
+
+  background:
+    rgba(5, 7, 16, 0.68);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.12);
+
+  backdrop-filter:
+    blur(22px);
+
+  box-shadow:
+    0 20px 60px
+      rgba(0, 0, 0, 0.45),
+    inset 0 1px 0
+      rgba(255, 255, 255, 0.04);
+}
+
+.command > span:first-child {
+  color: #7dd3fc;
+
+  font-size: 16px;
+
+  text-shadow:
+    0 0 12px
+    rgba(125, 211, 252, 0.7);
+}
+
+.command > span:last-child {
+  color:
+    rgba(255, 255, 255, 0.35);
+
+  font-size: 14px;
+}
+
+.command input {
+  flex: 1;
+
+  min-width: 0;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: white;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  letter-spacing: 0.3px;
+}
+
+.command input::placeholder {
+  color:
+    rgba(255, 255, 255, 0.35);
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .event-panel {
+    left: 12px;
+    top: 76px;
+
+    width: 230px;
+
+    padding: 12px;
+  }
+
+  .system-info,
+  .module-info {
+    right: 12px;
+
+    width: 210px;
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .logo {
+    font-size: 14px;
+    letter-spacing: 5px;
+  }
+
+  .command {
+    bottom: 15px;
+
+    width:
+      calc(100% - 24px);
+  }
+}
+
+/* =========================================================
+   NOVA LIVE CAMERA PANEL
+========================================================= */
+
+.vision-camera-panel {
+  position: absolute;
+  right: 28px;
+  bottom: 92px;
+  width: 250px;
+  padding: 12px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(12, 16, 30, 0.78),
+    rgba(5, 7, 16, 0.58)
+  );
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.vision-camera-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.vision-camera-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.vision-camera-icon {
+  color: #7dd3fc;
+  text-shadow: 0 0 10px rgba(125, 211, 252, 0.8);
+}
+
+.vision-camera-live,
+.vision-camera-offline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+}
+
+.vision-camera-live {
+  color: #7dd3fc;
+}
+
+.vision-camera-offline {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.vision-camera-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.vision-camera-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #020308;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vision-camera-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.vision-camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.vision-camera-placeholder-icon {
+  font-size: 22px;
+  color: #7dd3fc;
+  opacity: 0.7;
+  text-shadow: 0 0 16px rgba(125, 211, 252, 0.7);
+}
+
+.vision-camera-placeholder-title {
+  margin-top: 8px;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.vision-camera-placeholder-text {
+  margin-top: 6px;
+  font-size: 8px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.vision-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgba(125, 211, 252, 0.7);
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.8);
+  animation: visionScan 3s linear infinite;
+}
+
+@keyframes visionScan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.8;
+  }
+
+  90% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(250px);
+    opacity: 0;
+  }
+}
+
+.vision-camera-corner {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-color: rgba(125, 211, 252, 0.8);
+}
+
+.vision-camera-corner.top-left {
+  top: 7px;
+  left: 7px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.vision-camera-corner.top-right {
+  top: 7px;
+  right: 7px;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+
+.vision-camera-corner.bottom-left {
+  bottom: 7px;
+  left: 7px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}
+
+.vision-camera-corner.bottom-right {
+  bottom: 7px;
+  right: 7px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+.vision-person-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #7dd3fc;
+  border-radius: 50%;
+  box-shadow:
+    0 0 10px rgba(125, 211, 252, 0.8),
+    inset 0 0 8px rgba(125, 211, 252, 0.25);
+  transition:
+    left 0.18s ease-out,
+    top 0.18s ease-out;
+}
+
+.vision-person-marker span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px #7dd3fc;
+}
+
+.vision-camera-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 7px;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+@media (max-width: 700px) {
+  .vision-camera-panel {
+    right: 12px;
+    bottom: 76px;
+    width: 210px;
+  }
+}
