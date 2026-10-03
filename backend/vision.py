@@ -5,6 +5,8 @@ import time
 import cv2
 import numpy as np
 
+from ultralytics import YOLO
+
 
 class VisionEngine:
 
@@ -19,9 +21,9 @@ class VisionEngine:
 
         self.running = False
 
-        # ==========================================
+        # =================================================
         # PERSON DETECTOR
-        # ==========================================
+        # =================================================
 
         self.person_detector = cv2.HOGDescriptor()
 
@@ -29,18 +31,39 @@ class VisionEngine:
             cv2.HOGDescriptor_getDefaultPeopleDetector()
         )
 
-        # ==========================================
+        # =================================================
+        # YOLO OBJECT DETECTOR
+        # =================================================
+
+        print(
+            "Loading NOVA YOLO model..."
+        )
+
+        self.yolo = YOLO(
+            "yolo11n.pt"
+        )
+
+        print(
+            "✓ YOLO model loaded"
+        )
+
+        # =================================================
         # STATE
-        # ==========================================
+        # =================================================
 
         self.previous_gray = None
 
         self.last_person_event = 0
+
         self.last_motion_event = 0
 
-    # ==============================================
+        self.last_object_event = 0
+
+        self.last_object_names = set()
+
+    # =====================================================
     # START
-    # ==============================================
+    # =====================================================
 
     def start(self):
 
@@ -54,9 +77,9 @@ class VisionEngine:
             "Waiting for browser camera frames..."
         )
 
-    # ==============================================
+    # =====================================================
     # STOP
-    # ==============================================
+    # =====================================================
 
     def stop(self):
 
@@ -68,9 +91,9 @@ class VisionEngine:
             "NOVA Vision Engine stopped"
         )
 
-    # ==============================================
+    # =====================================================
     # RECEIVE BASE64 FRAME
-    # ==============================================
+    # =====================================================
 
     def process_base64_frame(
         self,
@@ -82,7 +105,6 @@ class VisionEngine:
 
         try:
 
-            # Remove data URL prefix
             if "," in frame_data:
 
                 frame_data = (
@@ -107,7 +129,9 @@ class VisionEngine:
             if frame is None:
                 return
 
-            self.process_frame(frame)
+            self.process_frame(
+                frame
+            )
 
         except Exception as error:
 
@@ -116,9 +140,9 @@ class VisionEngine:
                 error
             )
 
-    # ==============================================
+    # =====================================================
     # PROCESS FRAME
-    # ==============================================
+    # =====================================================
 
     def process_frame(
         self,
@@ -128,13 +152,15 @@ class VisionEngine:
         if not self.running:
             return
 
-        height, width = frame.shape[:2]
+        height, width = (
+            frame.shape[:2]
+        )
 
         now = time.time()
 
-        # ==========================================
+        # =================================================
         # MOTION DETECTION
-        # ==========================================
+        # =================================================
 
         gray = cv2.cvtColor(
             frame,
@@ -165,22 +191,27 @@ class VisionEngine:
                 cv2.countNonZero(
                     threshold
                 )
-                / (width * height)
+                /
+                (width * height)
             )
 
             if (
                 motion_area > 0.01
                 and
-                now - self.last_motion_event > 2
+                now -
+                self.last_motion_event
+                > 2
             ):
 
                 self.last_motion_event = now
 
                 self.emit({
 
-                    "id": int(
-                        time.time() * 1000
-                    ),
+                    "id":
+                        int(
+                            time.time()
+                            * 1000
+                        ),
 
                     "type":
                         "MOTION_DETECTED",
@@ -220,23 +251,48 @@ class VisionEngine:
 
         self.previous_gray = gray
 
-        # ==========================================
+        # =================================================
+        # YOLO OBJECT DETECTION
+        # =================================================
+
+        if (
+            now -
+            self.last_object_event
+            >= 0.5
+        ):
+
+            self.detect_objects(
+                frame
+            )
+
+        # =================================================
         # PERSON DETECTION
-        # ==========================================
+        # =================================================
 
         if (
             now -
             self.last_person_event
             < 0.2
         ):
+
             return
 
         boxes, weights = (
             self.person_detector
             .detectMultiScale(
+
                 frame,
-                winStride=(8, 8),
-                padding=(8, 8),
+
+                winStride=(
+                    8,
+                    8
+                ),
+
+                padding=(
+                    8,
+                    8
+                ),
+
                 scale=1.05
             )
         )
@@ -245,48 +301,57 @@ class VisionEngine:
 
             return
 
-        # ==========================================
-        # STRONGEST PERSON
-        # ==========================================
-
         strongest_index = 0
 
         if len(weights) > 1:
 
             strongest_index = int(
-                np.argmax(weights)
+                np.argmax(
+                    weights
+                )
             )
 
         x, y, w, h = (
-            boxes[strongest_index]
+            boxes[
+                strongest_index
+            ]
         )
 
         confidence = float(
-            weights[strongest_index]
+            weights[
+                strongest_index
+            ]
         )
 
-        center_x = x + (w / 2)
-        center_y = y + (h / 2)
+        center_x = (
+            x +
+            (w / 2)
+        )
+
+        center_y = (
+            y +
+            (h / 2)
+        )
 
         normalized_x = (
-            center_x / width
+            center_x /
+            width
         )
 
         normalized_y = (
-            center_y / height
+            center_y /
+            height
         )
 
         self.last_person_event = now
 
-        # ==========================================
-        # PERSON EVENT
-        # ==========================================
-
         self.emit({
 
-            "id": int(
-                time.time() * 1000
-            ),
+            "id":
+                int(
+                    time.time()
+                    * 1000
+                ),
 
             "type":
                 "PERSON_DETECTED",
@@ -351,9 +416,194 @@ class VisionEngine:
             }
         })
 
-    # ==============================================
-    # EMIT EVENT
-    # ==============================================
+    # =====================================================
+    # YOLO OBJECT DETECTION
+    # =====================================================
+
+    def detect_objects(
+        self,
+        frame
+    ):
+
+        now = time.time()
+
+        try:
+
+            results = self.yolo(
+
+                frame,
+
+                verbose=False,
+
+                conf=0.45,
+
+                imgsz=640
+            )
+
+            detected_objects = []
+
+            for result in results:
+
+                if result.boxes is None:
+                    continue
+
+                for box in result.boxes:
+
+                    class_id = int(
+                        box.cls[0]
+                    )
+
+                    confidence = float(
+                        box.conf[0]
+                    )
+
+                    name = (
+                        result.names[
+                            class_id
+                        ]
+                    )
+
+                    coordinates = (
+                        box.xyxy[0]
+                        .tolist()
+                    )
+
+                    x1, y1, x2, y2 = (
+                        coordinates
+                    )
+
+                    detected_objects.append({
+
+                        "name":
+                            name,
+
+                        "confidence":
+                            confidence,
+
+                        "region": {
+
+                            "x":
+                                int(x1),
+
+                            "y":
+                                int(y1),
+
+                            "width":
+                                int(
+                                    x2 - x1
+                                ),
+
+                            "height":
+                                int(
+                                    y2 - y1
+                                )
+                        }
+                    })
+
+            if not detected_objects:
+
+                self.last_object_names = set()
+
+                return
+
+            current_names = {
+                item["name"]
+                for item
+                in detected_objects
+            }
+
+            # Only emit when the detected
+            # object set changes.
+
+            if (
+                current_names
+                ==
+                self.last_object_names
+            ):
+
+                return
+
+            self.last_object_names = (
+                current_names
+            )
+
+            self.last_object_event = now
+
+            # =================================================
+            # OBJECT EVENTS
+            # =================================================
+
+            for obj in detected_objects:
+
+                object_name = (
+                    obj["name"]
+                )
+
+                event_type = (
+                    object_name
+                    .upper()
+                    .replace(
+                        " ",
+                        "_"
+                    )
+                    + "_DETECTED"
+                )
+
+                self.emit({
+
+                    "id":
+                        int(
+                            time.time()
+                            * 1000
+                        ),
+
+                    "type":
+                        event_type,
+
+                    "source":
+                        "VISION",
+
+                    "message":
+                        f"{object_name} detected",
+
+                    "timestamp":
+                        time.strftime(
+                            "%H:%M:%S"
+                        ),
+
+                    "color":
+                        "#86efac",
+
+                    "observation": {
+
+                        "object":
+                            True,
+
+                        "name":
+                            object_name,
+
+                        "confidence":
+                            obj[
+                                "confidence"
+                            ],
+
+                        "region":
+                            obj[
+                                "region"
+                            ]
+                    }
+                })
+
+        except Exception as error:
+
+            print(
+                "YOLO detection error:",
+                error
+            )
+
+    # =====================================================
+    # EVENT EMITTER
+    # =====================================================
 
     def emit(
         self,
@@ -361,6 +611,10 @@ class VisionEngine:
     ):
 
         asyncio.run_coroutine_threadsafe(
-            self.publish_event(event),
+
+            self.publish_event(
+                event
+            ),
+
             self.loop
         )

@@ -7,7 +7,7 @@ import time
 from event_bus import (
     subscribe,
     unsubscribe,
-    publish
+    publish,
 )
 
 from event_graph import EventGraph
@@ -15,9 +15,13 @@ from event_graph import EventGraph
 from vision import VisionEngine
 
 
+# =====================================================
+# NOVA APPLICATION
+# =====================================================
+
 app = FastAPI(
     title="NOVA AI Backend",
-    version="0.6.0"
+    version="0.6.0",
 )
 
 
@@ -26,7 +30,6 @@ app = FastAPI(
 # =====================================================
 
 app.add_middleware(
-
     CORSMiddleware,
 
     allow_origins=["*"],
@@ -40,7 +43,7 @@ app.add_middleware(
 
 
 # =====================================================
-# CORE
+# CORE SERVICES
 # =====================================================
 
 event_graph = EventGraph()
@@ -54,32 +57,35 @@ last_event_id = None
 # EVENT PROCESSOR
 # =====================================================
 
-async def process_event(
-    event
-):
+async def process_event(event: dict):
 
     global last_event_id
 
-    event_graph.add_event(
-        event
-    )
+    # ---------------------------------------------
+    # SAVE EVENT TO MEMORY
+    # ---------------------------------------------
+
+    event_graph.add_event(event)
+
+    # ---------------------------------------------
+    # CREATE EVENT RELATION
+    # ---------------------------------------------
 
     if last_event_id is not None:
 
         event_graph.add_relation(
-
             last_event_id,
-
             event["id"],
-
-            "FOLLOWED_BY"
+            "FOLLOWED_BY",
         )
 
     last_event_id = event["id"]
 
-    await publish(
-        event
-    )
+    # ---------------------------------------------
+    # SEND TO FRONTEND
+    # ---------------------------------------------
+
+    await publish(event)
 
 
 # =====================================================
@@ -93,33 +99,34 @@ async def startup():
 
     loop = asyncio.get_running_loop()
 
-    async def vision_publish(
-        event
-    ):
+    # ---------------------------------------------
+    # VISION → EVENT BUS
+    # ---------------------------------------------
 
-        await process_event(
-            event
-        )
+    async def vision_publish(event):
+
+        await process_event(event)
+
+    # ---------------------------------------------
+    # CREATE VISION ENGINE
+    # ---------------------------------------------
 
     vision_engine = VisionEngine(
-
         loop,
-
-        vision_publish
+        vision_publish,
     )
 
     vision_engine.start()
 
-    # ================================================
-    # TRACE
-    # ================================================
+    # ---------------------------------------------
+    # TRACE ONLINE
+    # ---------------------------------------------
 
     await process_event({
 
-        "id":
-            int(
-                time.time() * 1000
-            ),
+        "id": int(
+            time.time() * 1000
+        ),
 
         "type":
             "TRACE_ONLINE",
@@ -136,12 +143,12 @@ async def startup():
             ),
 
         "color":
-            "#f87171"
+            "#f87171",
     })
 
-    # ================================================
-    # MEMORY
-    # ================================================
+    # ---------------------------------------------
+    # MEMORY READY
+    # ---------------------------------------------
 
     await process_event({
 
@@ -165,8 +172,22 @@ async def startup():
             ),
 
         "color":
-            "#c084fc"
+            "#c084fc",
     })
+
+    print()
+    print("=" * 55)
+    print("NOVA AI BACKEND")
+    print("=" * 55)
+    print("✓ Event Graph")
+    print("✓ Persistent Memory")
+    print("✓ Event Bus")
+    print("✓ Vision Engine")
+    print("✓ WebSocket")
+    print("=" * 55)
+    print("Waiting for NOVA frontend...")
+    print("=" * 55)
+    print()
 
 
 # =====================================================
@@ -183,6 +204,10 @@ async def shutdown():
         vision_engine.stop()
 
     event_graph.close()
+
+    print(
+        "NOVA backend stopped"
+    )
 
 
 # =====================================================
@@ -210,38 +235,47 @@ async def root():
             "active",
 
         "memory":
-            "active"
+            "active",
+
+        "websocket":
+            "active",
     }
 
 
 # =====================================================
-# EVENTS
+# EVENTS API
 # =====================================================
 
 @app.get("/events")
-async def events():
+async def get_events():
 
     return {
 
         "events":
-            event_graph.get_events()
+            event_graph.get_events(
+                limit=50
+            )
     }
 
 
 # =====================================================
-# GRAPH
+# GRAPH API
 # =====================================================
 
 @app.get("/graph")
-async def graph():
+async def get_graph():
 
     return {
 
         "events":
-            event_graph.get_events(),
+            event_graph.get_events(
+                limit=50
+            ),
 
         "relations":
-            event_graph.get_relations()
+            event_graph.get_relations(
+                limit=100
+            ),
     }
 
 
@@ -251,7 +285,7 @@ async def graph():
 
 @app.websocket("/ws")
 async def websocket_endpoint(
-    websocket: WebSocket
+    websocket: WebSocket,
 ):
 
     await websocket.accept()
@@ -263,23 +297,33 @@ async def websocket_endpoint(
     )
 
     # =================================================
-    # SEND STORED EVENTS
+    # SEND RECENT HISTORY
     # =================================================
 
-    history = event_graph.get_events(
-        limit=8
-    )
+    try:
 
-    for event in reversed(
-        history
-    ):
-
-        await websocket.send_json(
-            event
+        history = (
+            event_graph.get_events(
+                limit=8
+            )
         )
 
+        for event in reversed(history):
+
+            await websocket.send_json(
+                event
+            )
+
+    except Exception as error:
+
+        print(
+            "History error:",
+            error
+        )
+
+
     # =================================================
-    # RECEIVE CAMERA FRAMES
+    # RECEIVE FROM FRONTEND
     # =================================================
 
     async def receive_messages():
@@ -297,9 +341,9 @@ async def websocket_endpoint(
                     message.get("type")
                 )
 
-                # -------------------------------------
+                # =====================================
                 # CAMERA FRAME
-                # -------------------------------------
+                # =====================================
 
                 if (
                     message_type
@@ -324,15 +368,102 @@ async def websocket_endpoint(
                             vision_engine
                             .process_base64_frame,
 
-                            frame
+                            frame,
                         )
+
+
+                # =====================================
+                # FRONTEND PING
+                # =====================================
+
+                elif (
+                    message_type
+                    ==
+                    "PING"
+                ):
+
+                    await websocket.send_json({
+
+                        "type":
+                            "PONG",
+
+                        "source":
+                            "NOVA",
+
+                        "message":
+                            "Backend alive",
+
+                        "timestamp":
+                            time.strftime(
+                                "%H:%M:%S"
+                            ),
+
+                        "color":
+                            "#67e8f9",
+
+                    })
+
+
+                # =====================================
+                # GESTURE
+                # =====================================
+
+                elif (
+                    message_type
+                    ==
+                    "GESTURE"
+                ):
+
+                    gesture = (
+                        message.get(
+                            "gesture"
+                        )
+                    )
+
+                    if gesture:
+
+                        await process_event({
+
+                            "id":
+                                int(
+                                    time.time()
+                                    * 1000
+                                ),
+
+                            "type":
+                                "GESTURE_DETECTED",
+
+                            "source":
+                                "VISION",
+
+                            "message":
+                                f"Gesture: {gesture}",
+
+                            "timestamp":
+                                time.strftime(
+                                    "%H:%M:%S"
+                                ),
+
+                            "color":
+                                "#facc15",
+
+                            "observation": {
+
+                                "gesture":
+                                    gesture,
+
+                            },
+
+                        })
+
 
         except Exception as error:
 
             print(
-                "Camera receive stopped:",
+                "Frontend receiver stopped:",
                 error
             )
+
 
     # =================================================
     # SEND EVENTS TO FRONTEND
@@ -355,12 +486,13 @@ async def websocket_endpoint(
         except Exception as error:
 
             print(
-                "Event sender stopped:",
+                "Frontend sender stopped:",
                 error
             )
 
+
     # =================================================
-    # RUN BOTH SIDES
+    # RUN BOTH TASKS
     # =================================================
 
     receiver_task = asyncio.create_task(
@@ -371,28 +503,36 @@ async def websocket_endpoint(
         send_events()
     )
 
+
     try:
 
         done, pending = await asyncio.wait(
 
             [
                 receiver_task,
-                sender_task
+                sender_task,
             ],
 
             return_when=
-                asyncio.FIRST_COMPLETED
+                asyncio.FIRST_COMPLETED,
         )
 
         for task in pending:
 
             task.cancel()
 
+
+    except Exception as error:
+
+        print(
+            "WebSocket error:",
+            error
+        )
+
+
     finally:
 
-        unsubscribe(
-            queue
-        )
+        unsubscribe(queue)
 
         print(
             "NOVA frontend disconnected"

@@ -963,49 +963,13 @@ function CameraController({
 
   useFrame(() => {
 
+    /* =====================================================
+       HAND CONTROL HAS PRIORITY
+       When a valid gesture is detected, the hand controls
+       the camera even if a system/module is selected.
+    ===================================================== */
+
     if (
-      selectedModule
-    ) {
-
-      targetPosition.current.set(
-        0,
-        0,
-        4.2
-      );
-
-      targetLookAt.current.set(
-        0,
-        0,
-        0
-      );
-
-    }
-
-    else if (
-      selectedSystem
-    ) {
-
-      targetPosition.current.set(
-        selectedSystem.position[0] *
-          0.35,
-
-        selectedSystem.position[1] *
-          0.35,
-
-        5.5
-      );
-
-      targetLookAt.current.set(
-        selectedSystem.position[0],
-
-        selectedSystem.position[1],
-
-        selectedSystem.position[2]
-      );
-
-    }
-
-    else if (
       visionControlEnabled &&
       gestureControl
     ) {
@@ -1047,6 +1011,46 @@ function CameraController({
         cameraX * 0.22,
         cameraY * 0.22,
         0
+      );
+
+    }
+
+    else if (
+      selectedModule
+    ) {
+
+      targetPosition.current.set(
+        0,
+        0,
+        4.2
+      );
+
+      targetLookAt.current.set(
+        0,
+        0,
+        0
+      );
+
+    }
+
+    else if (
+      selectedSystem
+    ) {
+
+      targetPosition.current.set(
+        selectedSystem.position[0] *
+          0.35,
+
+        selectedSystem.position[1] *
+          0.35,
+
+        5.5
+      );
+
+      targetLookAt.current.set(
+        selectedSystem.position[0],
+        selectedSystem.position[1],
+        selectedSystem.position[2]
       );
 
     }
@@ -1162,6 +1166,125 @@ function CameraController({
 
 
 /* =========================================================
+   GESTURE TARGET SELECTION
+========================================================= */
+
+function GestureSelectionLayer({
+  systems,
+  gestureControl,
+  onTarget,
+  onSelect,
+}: {
+  systems: NovaSystem[];
+  gestureControl: {
+    x: number;
+    y: number;
+    zoom: number;
+    gesture: string;
+  } | null;
+  onTarget: (system: NovaSystem | null) => void;
+  onSelect: (system: NovaSystem) => void;
+}) {
+
+  const { camera } = useThree();
+
+  const meshRefs = useRef<THREE.Mesh[]>([]);
+  const raycaster = useRef(new THREE.Raycaster());
+  const targetRef = useRef<NovaSystem | null>(null);
+  const targetSinceRef = useRef(0);
+  const selectedTargetRef = useRef<string | null>(null);
+
+  useFrame(() => {
+
+    if (
+      !gestureControl ||
+      !gestureControl.gesture.startsWith("POINT")
+    ) {
+      if (targetRef.current !== null) {
+        targetRef.current = null;
+        targetSinceRef.current = 0;
+        selectedTargetRef.current = null;
+        onTarget(null);
+      }
+      return;
+    }
+
+    /* The webcam preview is mirrored, so mirror X too. */
+    const ndc = new THREE.Vector2(
+      (1 - gestureControl.x) * 2 - 1,
+      -(gestureControl.y * 2 - 1)
+    );
+
+    raycaster.current.setFromCamera(ndc, camera);
+
+    const intersections =
+      raycaster.current.intersectObjects(
+        meshRefs.current,
+        false
+      );
+
+    let nextTarget: NovaSystem | null = null;
+
+    if (intersections.length > 0) {
+      const systemName =
+        intersections[0].object.userData.systemName as string | undefined;
+
+      if (systemName) {
+        nextTarget =
+          systems.find(
+            (system) => system.name === systemName
+          ) ?? null;
+      }
+    }
+
+    if (nextTarget?.name !== targetRef.current?.name) {
+      targetRef.current = nextTarget;
+      targetSinceRef.current = performance.now();
+      selectedTargetRef.current = null;
+      onTarget(nextTarget);
+      return;
+    }
+
+    /* Hold the point for 700 ms to select. */
+    if (
+      nextTarget &&
+      performance.now() - targetSinceRef.current > 700 &&
+      selectedTargetRef.current !== nextTarget.name
+    ) {
+      selectedTargetRef.current = nextTarget.name;
+      onSelect(nextTarget);
+    }
+  });
+
+  return (
+    <group>
+      {systems.map((system, index) => {
+        const refCallback = (mesh: THREE.Mesh | null) => {
+          if (mesh) meshRefs.current[index] = mesh;
+        };
+
+        return (
+          <mesh
+            key={`gesture-target-${system.name}`}
+            ref={refCallback}
+            position={system.position}
+            userData={{ systemName: system.name }}
+          >
+            <sphereGeometry args={[0.82, 16, 16]} />
+            <meshBasicMaterial
+              transparent
+              opacity={0}
+              depthWrite={false}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+
+/* =========================================================
    GALAXY
 ========================================================= */
 
@@ -1174,6 +1297,8 @@ function Galaxy({
   visionConfidence,
   personPosition,
   gestureControl,
+  gestureTarget,
+  onGestureTarget,
   events,
 }: {
   selectedSystem:
@@ -1211,6 +1336,10 @@ function Galaxy({
     zoom: number;
     gesture: string;
   } | null;
+
+  gestureTarget: NovaSystem | null;
+
+  onGestureTarget: (system: NovaSystem | null) => void;
 
   events: NovaEvent[];
 }) {
@@ -1268,6 +1397,19 @@ function Galaxy({
       />
 
 
+      {!selectedSystem && !selectedModule && (
+        <GestureSelectionLayer
+          systems={novaSystems}
+          gestureControl={gestureControl}
+          onTarget={onGestureTarget}
+          onSelect={(system) => {
+            setSelectedSystem(system);
+            setSelectedModule(null);
+          }}
+        />
+      )}
+
+
       {!selectedSystem && (
 
         <>
@@ -1287,7 +1429,7 @@ function Galaxy({
                 }
 
                 selected={
-                  false
+                  gestureTarget?.name === system.name
                 }
 
                 onClick={() => {
@@ -1475,6 +1617,9 @@ export default function App() {
       zoom: number;
       gesture: string;
     } | null>(null);
+
+  const [gestureTarget, setGestureTarget] =
+    useState<NovaSystem | null>(null);
 
   const gestureRecognizerRef =
     useRef<GestureRecognizer | null>(null);
@@ -2344,6 +2489,35 @@ export default function App() {
 
 
       {/* =================================================
+          GESTURE TARGET INDICATOR
+      ================================================= */}
+
+      {gestureTarget && (
+
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "118px",
+            transform: "translateX(-50%)",
+            padding: "7px 13px",
+            borderRadius: "10px",
+            border: `1px solid ${gestureTarget.color}55`,
+            background: "rgba(5,10,20,0.66)",
+            backdropFilter: "blur(14px)",
+            color: gestureTarget.color,
+            fontSize: "9px",
+            letterSpacing: "1.4px",
+            pointerEvents: "none",
+            zIndex: 20,
+          }}
+        >
+          TARGET · {gestureTarget.name}
+        </div>
+
+      )}
+
+      {/* =================================================
           GESTURE CONTROL INDICATOR
       ================================================= */}
 
@@ -2592,6 +2766,14 @@ export default function App() {
 
           gestureControl={
             gestureControl
+          }
+
+          gestureTarget={
+            gestureTarget
+          }
+
+          onGestureTarget={
+            setGestureTarget
           }
 
           events={
